@@ -1,0 +1,7 @@
+transformers 
+openvino 
+optimum[intel] 
+onnx 
+onnxruntime 
+
+faiss-cpu
