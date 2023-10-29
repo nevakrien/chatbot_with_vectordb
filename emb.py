@@ -43,11 +43,17 @@ class VectorDB:
         self.index.add(embeddings)
 
     def search(self,texts: list,k: int,add: bool):
+        if self.index==None:
+            if add:
+                self.add(texts)
+            return []
+
         embeddings=make_embedding(texts)
         distances, indices = self.index.search(embeddings, k)
         if add:
             self.texts+=texts
             self.index.add(embeddings)
+        
         print(indices)
         return [[self.texts[i] for i in t] for t in indices]
 
@@ -74,3 +80,6 @@ if __name__=="__main__":
     db.add(input_texts)
     print(db.search(query_texts,1,True))
     print(db.texts)
+
+    db=VectorDB()
+    print(db.search(['text'],k=3,add=True))
