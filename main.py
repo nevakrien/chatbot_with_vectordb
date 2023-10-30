@@ -9,7 +9,7 @@ model_name = "HuggingFaceH4/zephyr-7b-beta"#"gpt2"
 identety_prompt = "be cheary and help people try and talk about python"
 
 def get_next_text(model,tokenizer,input_messages):
-	inputs=tokenizer.apply_chat_template(input_messages,return_tensors='pt')
+	inputs=tokenizer.apply_chat_template(input_messages,return_tensors='pt',add_generation_prompt=True)
 	#print(inputs)
 	output=model.generate(inputs,do_sample=True,num_beams=3,top_k=10,no_repeat_ngram_size=2,
 		max_new_tokens=100,temperature=2.,penalty_alpha=0.6,early_stopping=True)

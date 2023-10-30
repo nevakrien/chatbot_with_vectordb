@@ -14,3 +14,6 @@ print(prompt)
 
 tokens = tokenizer.apply_chat_template(messages, add_generation_prompt=True,return_tensors='pt')
 print(tokens)
+
+tokens = tokenizer.batch_decode([[28767,]])
+print(tokens)
