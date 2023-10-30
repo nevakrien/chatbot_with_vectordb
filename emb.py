@@ -54,7 +54,7 @@ class VectorDB:
             self.texts+=texts
             self.index.add(embeddings)
         
-        print(indices)
+        #print(indices)
         return [[self.texts[i] for i in t] for t in indices]
 
 

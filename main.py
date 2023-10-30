@@ -1,9 +1,11 @@
 from transformers import  AutoTokenizer,AutoModelForCausalLM
 from optimum.intel import OVModelForCausalLM
 from emb import VectorDB
-	
-model_name = "HuggingFaceH4/zephyr-7b-beta"#"gpt2"
 
+# import os
+# token = os.environ.get('hf_token')
+
+model_name = "HuggingFaceH4/zephyr-7b-beta"#"gpt2"
 identety_prompt = "be cheary and help people try and talk about python"
 
 def get_next_text(model,tokenizer,input_messages):
@@ -12,9 +14,9 @@ def get_next_text(model,tokenizer,input_messages):
 	output=model.generate(inputs,do_sample=True,num_beams=3,top_k=10,no_repeat_ngram_size=2,
 		max_new_tokens=100,temperature=2.,penalty_alpha=0.6,early_stopping=True)
 	#print(output)
-	output=tokenizer.batch_decode(output,skip_special_tokens=True)
-	return output#[x.split("<|assistant|>")[-1] for x in output]
-
+	output=tokenizer.batch_decode(output[:,inputs.shape[-1]:],skip_special_tokens=True)
+	#output=[x.split("<|assistant|>")[-1] for x in output]
+	return output
 
 #this is the standard format introduced by openai and used by hf
 def openai_format(text,role='system'):
