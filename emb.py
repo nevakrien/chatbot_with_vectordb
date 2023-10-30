@@ -46,7 +46,7 @@ class VectorDB:
         if self.index==None:
             if add:
                 self.add(texts)
-            return []
+            return [[] for _ in texts]
 
         embeddings=make_embedding(texts)
         distances, indices = self.index.search(embeddings, k)

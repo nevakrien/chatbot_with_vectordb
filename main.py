@@ -2,22 +2,36 @@ from transformers import  AutoTokenizer,AutoModelForCausalLM
 from optimum.intel import OVModelForCausalLM
 from emb import VectorDB
 	
-model_name = 'gpt2'#"HuggingFaceH4/zephyr-7b-beta"
-starting_prompt = "be cheary and help people start with your name"
+model_name = "HuggingFaceH4/zephyr-7b-beta"#"gpt2"
 
-def get_next_text(model,tokenizer,input_text):
-	inputs=tokenizer([input_text],return_tensors='pt')
-	output=model.generate(**inputs,max_new_tokens=100)
-	print(output)
-	return tokenizer.batch_decode(output,skip_special_tokens=True)
+identety_prompt = "be cheary and help people try and talk about python"
 
+def get_next_text(model,tokenizer,input_messages):
+	inputs=tokenizer.apply_chat_template(input_messages,return_tensors='pt')
+	#print(inputs)
+	output=model.generate(inputs,do_sample=True,num_beams=3,top_k=10,no_repeat_ngram_size=2,
+		max_new_tokens=100,temperature=2.,penalty_alpha=0.6,early_stopping=True)
+	#print(output)
+	output=tokenizer.batch_decode(output,skip_special_tokens=True)
+	return output#[x.split("<|assistant|>")[-1] for x in output]
+
+
+#this is the standard format introduced by openai and used by hf
+def openai_format(text,role='system'):
+    return {'role':role,'content':text}
+#assistant
+#user
 
 def make_input(user_db,bot_db,prompt):
-	return f"""
-	user said: {[prompt]+user_db.search([prompt],3,add=True)} 
+	messages=(
+		[openai_format(identety_prompt),openai_format('user said in the past:')]
+		+[openai_format(x,'user') for x in user_db.search([prompt],3,add=True)[0]]
+		+[openai_format('I the bot said in the past')]
+		+[openai_format(x,'assistant') for x in bot_db.search([prompt],3,add=False)[0]]
+		+[openai_format('user is saying:'),openai_format(prompt,'user')]
+		)
 
-	I (the bot) said {bot_db.search([prompt],3,add=True)}
-	"""
+	return messages
 
 if __name__=='__main__':
 	tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -25,14 +39,17 @@ if __name__=='__main__':
 	
 	user_db=VectorDB()
 	bot_db=VectorDB()
-	
 
-	prompt=starting_prompt
+	next_output=['input text']
 	while(True):
-		input_text = make_input(user_db,bot_db,prompt)
-		print(input_text)
+		prompt=input(next_output[0]+'\n')
+		print(2*("\n"+10*"!"))
+		
+		input_messages = make_input(user_db,bot_db,prompt)
+		#print(input_messages)
+		#print("\n")
 
-		next_output=get_next_text(model,tokenizer,input_text)[0]
-		print(10*("\n"+10*"!"))
-		prompt=input(next_output)
-		print("\n")
+		next_output=get_next_text(model,tokenizer,input_messages)
+		bot_db.add(next_output[0])
+
+		print(2*("\n"+10*"!"))
