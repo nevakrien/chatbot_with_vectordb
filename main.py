@@ -6,9 +6,9 @@ from collections import deque
 # import os
 # token = os.environ.get('hf_token')
 
-#model_name = "/home/user/.cache/huggingface/hub/models--meta-llama--Llama-2-7b-chat-hf/snapshots/94b07a6e30c3292b8265ed32ffdeccfdadf434a8"
-model_name="microsoft/DialoGPT-medium"#"HuggingFaceH4/zephyr-7b-beta"#"gpt2"
-identety_prompt = "IMPORTANT: your name is james you tell jokes!!!"
+model_name = "/home/user/.cache/huggingface/hub/models--meta-llama--Llama-2-7b-chat-hf/snapshots/94b07a6e30c3292b8265ed32ffdeccfdadf434a8"
+#model_name="microsoft/DialoGPT-medium"#"HuggingFaceH4/zephyr-7b-beta"#"gpt2"
+identety_prompt = "given the information provided and the context respond to the user"
 CONTEXT=3
 
 def get_next_text(model,tokenizer,input_messages):
@@ -27,25 +27,23 @@ def openai_format(text,role='system'):
 #assistant
 #user
 
-def make_input(user_db,bot_db,history: list ):
+def make_input(wiki_db: VectorDB,history: list ):
 	prompt=history[-1]
+	wiki="\n\n".join(wiki_db.search(prompt,1,add=False)[0])
+	#print(wiki)
 	messages=(
-		[openai_format(identety_prompt),openai_format('memories of what the user said in the past:')]
-		+[openai_format(x,'user') for x in user_db.search([prompt],3,add=True)[0] if not x in history]
-		+[openai_format('memories of what I the bot said in the past:')]
-		+[openai_format(x,'assistant') for x in bot_db.search([prompt],3,add=False)[0] if not x in history]
-		+[openai_format('curent conversation:')]
+		[openai_format(f'relevent wikipedia information:\n {wiki}')]
 		+[openai_format(x,'user' if i%2==(CONTEXT-1)%2 else 'assistant') for i,x in enumerate(history)]
+		+[openai_format(identety_prompt)]
 		)
-
+	# print(messages)
 	return messages
 
 if __name__=='__main__':
 	tokenizer = AutoTokenizer.from_pretrained(model_name)
 	model = AutoModelForCausalLM.from_pretrained(model_name)#,export=True)
 	
-	user_db=VectorDB()
-	bot_db=VectorDB()
+	wiki_db=VectorDB.load('wiki_db.pkl')
 	history=deque(maxlen=CONTEXT)
 
 	next_output=['input text']
@@ -54,11 +52,9 @@ if __name__=='__main__':
 		print(2*("\n"+10*"!"))
 		
 		history.append(prompt)
-		input_messages = make_input(user_db,bot_db,history)
+		input_messages = make_input(wiki_db,history)
 		#print(input_messages)
 		#print("\n")
 
 		next_output=get_next_text(model,tokenizer,input_messages)
-		bot_db.add(next_output[0])
-
 		print(2*("\n"+10*"!"))
