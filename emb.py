@@ -6,6 +6,7 @@ from optimum.intel import OVModelForFeatureExtraction
 
 import faiss
 
+import pickle
 
 def average_pool(last_hidden_states: Tensor,
                  attention_mask: Tensor) -> Tensor:
@@ -15,7 +16,7 @@ def average_pool(last_hidden_states: Tensor,
 tokenizer = AutoTokenizer.from_pretrained("thenlper/gte-small")
 #model = AutoModel.from_pretrained("thenlper/gte-small")
 model = OVModelForFeatureExtraction.from_pretrained("thenlper/gte-small",export=True)
-
+BATCH=64
 
 @torch.no_grad()
 def make_embedding(texts):
@@ -34,6 +35,11 @@ class VectorDB:
         self.index=None
 
     def add(self,texts: list):
+        if(len(texts)>BATCH):
+            self.add(texts[:BATCH])
+            self.add(texts[BATCH:])
+            return 
+    
         self.texts+=texts
         embeddings=make_embedding(texts)
 
@@ -56,7 +62,15 @@ class VectorDB:
         
         #print(indices)
         return [[self.texts[i] for i in t] for t in indices]
+    
+    def save(self, filename: str):
+        with open(filename, 'wb') as f:
+            pickle.dump(self, f)
 
+    @staticmethod
+    def load(filename: str):
+        with open(filename, 'rb') as f:
+            return pickle.load(f)
 
 #def add_user_message(index,)
 
@@ -78,6 +92,15 @@ if __name__=="__main__":
     # print(scores.tolist())
     db=VectorDB()
     db.add(input_texts)
+
+    
+    # Save the instance to a file
+    db.save("vector_db.pkl")
+
+    # Load the instance from the file
+    db = VectorDB.load("vector_db.pkl")
+
+
     print(db.search(query_texts,1,True))
     print(db.texts)
 

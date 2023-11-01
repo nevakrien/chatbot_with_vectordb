@@ -5,3 +5,8 @@ onnx
 onnxruntime 
 
 faiss-cpu
+
+wikipedia 
+chardet
+
+tqdm
